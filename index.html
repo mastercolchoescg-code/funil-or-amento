@@ -117,6 +117,13 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding-bloc
 .chip.warn{background:var(--amber-soft);color:var(--amber)}
 .card .foot{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-3);gap:6px}
 .late{color:var(--bad);font-weight:700}
+a.wa{display:inline-flex;align-items:center;gap:5px;color:#128C4B;font-weight:600;text-decoration:none;border-radius:6px}
+a.wa:hover{text-decoration:underline}
+.card-wa{display:flex}
+.card-wa a.wa{font-size:12px;background:color-mix(in srgb,#25D366 14%,var(--surface));padding:3px 8px;border-radius:99px}
+.wa-btn{display:inline-grid;place-items:center;color:#128C4B;flex:none;text-decoration:none}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) a.wa,:root:not([data-theme="light"]) .wa-btn{color:#4ADE80}}
+:root[data-theme="dark"] a.wa,:root[data-theme="dark"] .wa-btn{color:#4ADE80}
 .today{color:var(--warn);font-weight:700}
 .empty-col{font-size:12px;color:var(--ink-3);text-align:center;padding:14px 6px;border:1px dashed var(--line);border-radius:8px}
 
@@ -714,6 +721,11 @@ function renderFunil(){
   if(sub==="kanban")renderBoard();else if(sub==="lista")renderLista();else renderAnalise();
 }
 document.querySelectorAll("#funilTabs button").forEach(b=>b.onclick=()=>{sub=b.dataset.sub;lsSet("mc_sub",sub);renderFunil()});
+// WhatsApp: no computador abre o WhatsApp Web, no celular abre o app
+function waNumero(t){let d=String(t||"").replace(/\D/g,"");if(!d)return"";d=d.replace(/^0+/,"");if(d.length===10||d.length===11)d="55"+d;return d.length>=12?d:""}
+function waUrl(t){const d=waNumero(t);if(!d)return"";const cel=matchMedia("(pointer:coarse)").matches||/Android|iPhone|iPad/i.test(navigator.userAgent);return cel?"https://wa.me/"+d:"https://web.whatsapp.com/send?phone="+d}
+const WA_ICON=`<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" style="vertical-align:-2px;flex:none"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.1-1.2l-.4-.2z"/></svg>`;
+function waLink(t,texto){const u=waUrl(t);if(!u)return esc(texto??t??"");return`<a class="wa" href="${u}" target="_blank" rel="noopener" title="Abrir conversa no WhatsApp">${WA_ICON}<span>${esc(texto??t)}</span></a>`}
 function proxInfo(l){
   if(!l.proximoContato||tipoDe(l.status)!=="aberto")return"";
   const d=diasEntre(hoje(),l.proximoContato);
@@ -727,6 +739,7 @@ function cardHTML(l){
     <div class="top"><span class="name">${esc(l.nome)}</span><span class="val num">${l.valor?brl(l.valor):""}</span></div>
     <div class="meta">${l.entrada?`<span class="chip">${esc(l.entrada)}</span>`:""}${l.origem?`<span class="chip origem">${esc(l.origem)}</span>`:""}${l.campanha?`<span class="chip camp">${esc(l.campanha)}</span>`:""}${l.produto?`<span class="chip">${esc(l.produto)}</span>`:""}</div>
     <div class="foot num"><span>${proxInfo(l)||esc(l.cidade||"")}</span><span title="Dias desde a última interação">${sem===0?"hoje":sem+"d sem contato"}</span></div>
+    ${!l.demo&&waNumero(l.telefone)?`<div class="card-wa">${waLink(l.telefone,"WhatsApp")}</div>`:""}
   </article>`;
 }
 function renderBoard(){
@@ -747,7 +760,7 @@ function renderBoard(){
 function renderLista(){
   const fl=filtrados().sort((a,b)=>(b.criadoEm||"").localeCompare(a.criadoEm||""));
   $("#tbody").innerHTML=fl.map(l=>`<tr class="click" data-id="${esc(l.id)}">
-    <td class="num">${fmtData(l.criadoEm)}</td><td><b>${esc(l.nome)}</b></td><td class="num">${esc(l.telefone||"")}</td><td>${esc(l.cidade||"")}</td>
+    <td class="num">${fmtData(l.criadoEm)}</td><td><b>${esc(l.nome)}</b></td><td class="num">${waLink(l.telefone)}</td><td>${esc(l.cidade||"")}</td>
     <td>${esc(l.entrada||"")}</td><td>${esc(l.origem||"")}</td><td>${esc(l.campanha||"")}</td><td>${esc(l.produto||"")}</td><td class="r num">${l.valor?brl(l.valor):""}</td>
     <td><span class="pill"><i style="background:${esc(corSt(l.status))}"></i>${esc(nomeSt(l.status))}</span></td>
     <td class="num">${proxInfo(l)||"—"}</td><td>${esc(l.vendedor||"")}</td></tr>`).join("")||`<tr><td colspan="12" class="muted">Nenhum lead neste filtro.</td></tr>`;
@@ -1534,7 +1547,7 @@ function openLead(id,pre){
     <div class="m-head"><h2 id="mTitle">${real?esc(l.nome):"Novo lead / orçamento"}</h2><button type="button" class="x" id="mClose" aria-label="Fechar">×</button></div>
     <div class="fields">
       <div class="f"><label for="iNome">Nome do cliente <span class="req">*</span></label><input id="iNome" required value="${esc(l.nome||"")}" autocomplete="off"></div>
-      <div class="f"><label for="iTel">WhatsApp / telefone</label><input id="iTel" inputmode="tel" value="${esc(l.telefone||"")}" placeholder="(74) 9 ...."></div>
+      <div class="f"><label for="iTel">WhatsApp / telefone</label><div style="display:flex;gap:6px"><input id="iTel" inputmode="tel" value="${esc(l.telefone||"")}" placeholder="(74) 9 ...."><a id="iTelWa" class="btn small wa-btn" href="${waUrl(l.telefone)||"#"}" target="_blank" rel="noopener" title="Abrir conversa no WhatsApp" aria-label="Abrir no WhatsApp"${waNumero(l.telefone)?"":" hidden"}>${WA_ICON}</a></div></div>
       <div class="f"><label for="iCidade">Cidade</label><input id="iCidade" list="dlCidades" value="${esc(l.cidade||"")}"><datalist id="dlCidades">${opts(CFG.cidades)}</datalist></div>
       <div class="f"><label for="iData">Data de entrada</label><input id="iData" type="date" value="${esc(l.criadoEm||hoje())}"></div>
       <div class="f"><label for="iEntrada">Canal de entrada <span class="req">*</span></label><select id="iEntrada">${optsKeep(nomes("entradas"),l.entrada,"Selecione…")}</select></div>
@@ -1571,6 +1584,7 @@ function openLead(id,pre){
    </div></div>`;
   ov.hidden=false;
   renderTimeline();
+  $("#iTel").oninput=()=>{const a=$("#iTelWa"),u=waUrl($("#iTel").value);a.hidden=!u;if(u)a.href=u};
   $("#iNome").focus();
   $("#iStatus").onchange=e=>{const t=tipoDe(e.target.value);$("#wMotivo").hidden=t!=="perdido";$("#wFechou").hidden=t!=="ganho";if(t==="ganho"&&!$("#iFechou").value){$("#iFechou").value=tipoEntrada($("#iEntrada").value)==="presencial"||draftEventos.some(x=>/visita/i.test(x.tipo))?"loja":"";}};
   $("#mClose").onclick=$("#mCancel").onclick=closeModal;
@@ -1656,6 +1670,7 @@ async function exportCsv(){
 
 // ================= EVENTOS GLOBAIS =================
 document.addEventListener("click",e=>{
+  if(e.target.closest("a.wa"))return;
   const c=e.target.closest("#view-funil .card, #view-funil tbody tr[data-id]");
   if(c&&!e.target.closest(".overlay"))openLead(c.dataset.id);
 });
