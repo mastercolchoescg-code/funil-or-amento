@@ -1715,7 +1715,7 @@ function telaLogin(modo){
     const b=$("#aBtn");b.disabled=true;authMsg("");
     try{
       if(modo==="entrar"){const{error}=await sb.auth.signInWithPassword({email,password:senha});if(error)throw error;entrarNoApp();return}
-      else if(modo==="criar"){const{data,error}=await sb.auth.signUp({email,password:senha});if(error)throw error;if(data.session){entrarNoApp();return}if(!data.session){authMsg("Conta criada. Abra o e-mail de confirmação que enviamos e depois volte aqui para entrar.",true);b.disabled=false;return}}
+      else if(modo==="criar"){const{data,error}=await sb.auth.signUp({email,password:senha,options:{emailRedirectTo:location.origin+location.pathname}});if(error)throw error;if(data.session){entrarNoApp();return}if(!data.session){authMsg("Conta criada. Abra o e-mail de confirmação que enviamos e depois volte aqui para entrar.",true);b.disabled=false;return}}
       else{const{error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});if(error)throw error;authMsg("Enviamos um link para "+email+". Abra no mesmo aparelho para criar a nova senha.",true);b.disabled=false;return}
     }catch(err){
       const m=String(err&&err.message||"");
@@ -1867,7 +1867,13 @@ $("#btnCsv").hidden=false;$("#btnCsv").onclick=()=>exportCsv();
   }
   sb=window.supabase.createClient(SUPABASE_URL.replace(/\/$/,""),SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   sb.auth.onAuthStateChange((ev)=>{if(ev==="PASSWORD_RECOVERY")telaNovaSenha();if(ev==="SIGNED_IN"&&!LOJA&&$("#auth").hidden===false&&!$("#nsForm"))entrarNoApp()});
-  entrarNoApp();
+  const hp=new URLSearchParams((location.hash||"").replace(/^#/,"")+"&"+(location.search||"").replace(/^\?/,""));
+  const errLink=hp.get("error_description")||hp.get("error");
+  const veioDoEmail=hp.get("type")==="signup"||hp.get("type")==="email";
+  if(errLink||veioDoEmail)history.replaceState(null,"",location.pathname);
+  await entrarNoApp();
+  if(errLink&&$("#aEmail")){authMsg(/expired|invalid/i.test(errLink)?"Esse link de confirmação expirou ou já foi usado. Tente entrar com e-mail e senha; se não der, toque em Criar conta de novo.":"Link de e-mail: "+errLink.replace(/\+/g," "))}
+  else if(veioDoEmail&&$("#aEmail"))authMsg("E-mail confirmado. Agora entre com seu e-mail e senha.",true);
 })();
 })();
 </script>
